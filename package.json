@@ -16,5 +16,8 @@
   "bugs": {
     "url": "https://github.com/RomelDonovan/tinyapp/issues"
   },
-  "homepage": "https://github.com/RomelDonovan/tinyapp#readme"
+  "homepage": "https://github.com/RomelDonovan/tinyapp#readme",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
 }
