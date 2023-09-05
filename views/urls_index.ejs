@@ -34,9 +34,9 @@
             <tr>
               <td><%= id %></td>
               <td><%= urls[id] %></td>
-              <td><form method="POST" action="/urls/<%= id %>">
+              <td><a href="/urls/<%= id %>">
                 <button type="submit">✏️</button>
-              </form></td>
+              </a></td>
               <td><form method="POST" action="/urls/<%= id %>/delete">
                 <button type="submit">❌</button>
               </form></td>
