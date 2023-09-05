@@ -24,49 +24,35 @@ const urlDatabase = {
 };
 // homepage
 app.get("/", (req, res) => {
-  res.send("Hello");
+  res.redirect("/urls");
 });
-
 app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
 
-app.get("/hello", (req, res) => {
-  res.send("<html><body>Hello <b>World</b></body></html>\n");
-});
-
-app.get("/set", (req, res) => {
-  const a = 1;
-  res.send(`a = ${a}`);
- });
- 
- app.get("/fetch", (req, res) => {
-  res.send(`a = ${a}`);
- });
- 
- app.get("/urls", (req, res) => {
+app.get("/urls", (req, res) => {
   const templateVars = { urls: urlDatabase };
   res.render("urls_index", templateVars);
 });
-
 app.post("/urls", (req, res) => {
   const id = generateRandomString();
   urlDatabase[id] = req.body.longURL;
   res.redirect(`/urls/${id}`);
 });
 
+// Add
 app.get("/urls/new", (req, res) => {
   res.render("urls_new");
 });
 
+// Update
 app.get("/urls/:id", (req, res) => {
-  const templateVars = { 
-    id: req.params.id, 
+  const templateVars = {
+    id: req.params.id,
     longURL: urlDatabase[req.params.id]
   };
   res.render("urls_show", templateVars);
 });
-
 app.post("/urls/:id", (req, res) => {
   const { id } = req.params;
   const { updatedURL } = req.body;
@@ -74,17 +60,37 @@ app.post("/urls/:id", (req, res) => {
   res.redirect("/urls");
 });
 
+/* ----------------------------------*/
+
+app.post("/login", (req, res) => {
+  const { username } = req.body;
+  res.cookie("username", username);
+  res.redirect("/urls");
+});
 app.get("/u/:id", (req, res) => {
   const longURL = urlDatabase[req.params.id];
   res.redirect(longURL);
 });
 
+// Delete
 app.post("/urls/:id/delete", (req, res) => {
   delete urlDatabase[req.params.id];
   res.redirect("/urls");
-
 });
 
+// Test
+app.get("/hello", (req, res) => {
+  res.send("<html><body>Hello <b>World</b></body></html>\n");
+});
+app.get("/set", (req, res) => {
+  const a = 1;
+  res.send(`a = ${a}`);
+});
+app.get("/fetch", (req, res) => {
+  res.send(`a = ${a}`);
+});
+
+// listen
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
