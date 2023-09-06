@@ -2,45 +2,11 @@ const express = require("express");
 const app = express();
 const cookieParser = require('cookie-parser')
 const PORT = 8080; // default port 8080
+const { urlDatabase, users, generateRandomString, generateUserID, getUserByEmail } = require("./helper")
 
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.set("view engine", "ejs");
-
-const users = {
-  user: {
-    email: "",
-    password: "",
-    id: ""
-  }
-};
-
-const generateRandomString = () => {
-  const char = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  let idGen = "";
-
-  for (let i = 0; i < 6; i++) {
-    let randomID = Math.floor(Math.random() * char.length);
-    idGen += char.charAt(randomID);
-  }
-  return idGen;
-};
-
-const generateUserID = () => {
-  const char = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  let idGen = "";
-
-  for (let i = 0; i < 3; i++) {
-    let randomID = Math.floor(Math.random() * char.length);
-    idGen += char.charAt(randomID);
-  }
-  return idGen;
-};
-
-const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
-};
 
 // Homepage
 app.get("/", (req, res) => {
@@ -50,19 +16,26 @@ app.get("/", (req, res) => {
 app.get("/urls", (req, res) => {
   const templateVars = {
     urls: urlDatabase,
-    user: req.cookies["user_id"]
+    user: users[req.cookies["user_id"]]
   };
   res.render("urls_index", templateVars);
 });
 
 // Register
 app.get("/register", (req, res) => {
+
   res.render("urls_registration");
 });
 
 app.post("/register", (req, res) => {
-  const id = generateUserID();
   const { email, password } = req.body;
+  if(!email || !password) {
+    return res.status(400).send("Email or Password invalid");
+  }
+  if (getUserByEmail(users, email)) {
+    return res.status(400).send("Email already exists");
+  }
+  const id = generateUserID();
   users[id] = {id, email, password};
   res.cookie("user_id", users[id].id)
   res.redirect("/urls")
@@ -70,21 +43,21 @@ app.post("/register", (req, res) => {
 
 // Login
 app.post("/login", (req, res) => {
-  const { user } = req.body;
-  res.cookie("user_id", user);
+  const { username } = req.body;
+  res.cookie("user_id", username);
   res.redirect("/urls");
 });
 
 // Logout
 app.post("/logout", (req, res) => {
-  const { user } = req.body;
-  res.clearCookie("user_id", user);
+  const { username } = req.body;
+  res.clearCookie("user_id", username);
   res.redirect("/urls");
 })
 
 // Add
 app.get("/urls/new", (req, res) => {
-  const templateVars = { user: req.cookies["user_id"] };
+  const templateVars = { user: users[req.cookies["user_id"]] };
   res.render("urls_new", templateVars);
 });
 
@@ -98,7 +71,7 @@ app.get("/urls/:id", (req, res) => {
   const templateVars = {
     id: req.params.id,
     longURL: urlDatabase[req.params.id],
-    user: req.cookies["user_id"]
+    user: users[req.cookies["user_id"]]
   };
   res.render("urls_show", templateVars);
 });
