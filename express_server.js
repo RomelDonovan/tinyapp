@@ -68,6 +68,9 @@ app.post("/urls/:id", (req, res) => {
 });
 
 /* ----------------------------------*/
+app.get("/register", (req, res) => {
+  res.render("urls_registration");
+})
 
 app.post("/login", (req, res) => {
   const { username } = req.body;
