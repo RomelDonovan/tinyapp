@@ -37,11 +37,14 @@ app.post("/register", (req, res) => {
   }
   const id = generateUserID();
   users[id] = {id, email, password};
-  res.cookie("user_id", users[id].id)
-  res.redirect("/urls")
+  res.cookie("user_id", users[id].id);
+  res.redirect("/urls");
 })
 
 // Login
+app.get("/login", (req, res) => {
+  res.render("urls_login");
+})
 app.post("/login", (req, res) => {
   const { username } = req.body;
   res.cookie("user_id", username);
