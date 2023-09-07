@@ -21,9 +21,9 @@ const getUserByEmail = (users, email) => {
 
 const urlsForUser = (id) => {
   let urls = {};
-  for(const url in urlDatabase) {
+  for (const url in urlDatabase) {
     if (urlDatabase[url].user === id) {
-      urls[url] = {...urlDatabase[url]};
+      urls[url] = urlDatabase[url].longURL;
     }
   }
   return urls;

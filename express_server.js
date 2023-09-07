@@ -10,7 +10,6 @@ app.set("view engine", "ejs");
 
 // Homepage
 app.get("/", (req, res) => {
-  const templateVars = { user: users[req.cookies["user_id"]] };
   res.redirect("/urls");
 });
 
@@ -18,6 +17,7 @@ app.get("/urls", (req, res) => {
   if (!req.cookies.user_id) {
     return res.redirect("/login");
   }
+  
   const templateVars = {
     urls: urlDatabase,
     user: users[req.cookies["user_id"]]
@@ -92,10 +92,11 @@ app.get("/urls/new", (req, res) => {
 
 app.post("/urls", (req, res) => {
   if (!req.body.longURL) {
-    return res.send("Error: Empty request")
+    return res.send("Error: Empty request");
   }
   const id = generateRandomString();
-  urlDatabase[id] = req.body.longURL;
+  const userId = req.cookies["user_id"]; // Get the user's ID from the cookie
+  urlDatabase[id] = { longURL: req.body.longURL, user: userId }; // Store the user's ID along with the URL
   res.redirect(`/urls`);
 });
 
@@ -115,13 +116,34 @@ app.get("/urls/:id", (req, res) => {
 app.post("/urls/:id", (req, res) => {
   const { id } = req.params;
   const { updatedURL } = req.body;
-  urlDatabase[id] = updatedURL;
+  const userId = req.cookies["user_id"];
+  if (!urlDatabase[id]) {
+    return res.status(404).send("URL not found");
+  }
+  if (!userId) {
+    return res.status(403).send("Please log in to edit the URL");
+  }
+  if (urlDatabase[id].user !== userId) {
+    return res.status(403).send("You do not own this URL");
+  }
+  urlDatabase[id].longURL = updatedURL;
   res.redirect("/urls");
 });
 
 // Delete
 app.post("/urls/:id/delete", (req, res) => {
-  delete urlDatabase[req.params.id];
+  const { id } = req.params;
+  const userId = req.cookies["user_id"];
+  if (!urlDatabase[id]) {
+    return res.status(404).send("URL not found");
+  }
+  if (!userId) {
+    return res.status(403).send("Please log in to delete the URL");
+  }
+  if (urlDatabase[id].user !== userId) {
+    return res.status(403).send("You do not own this URL");
+  }
+  delete urlDatabase[id];
   res.redirect("/urls");
 });
 
