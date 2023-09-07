@@ -23,39 +23,47 @@ app.get("/urls", (req, res) => {
 
 // Register
 app.get("/register", (req, res) => {
-
-  res.render("urls_registration");
+  const templateVars = { user : users[req.cookies["user_id"]] }
+  res.render("urls_registration", templateVars);
 });
 
 app.post("/register", (req, res) => {
   const { email, password } = req.body;
-  if(!email || !password) {
+  if (!email || !password) {
     return res.status(400).send("Email or Password invalid");
   }
   if (getUserByEmail(users, email)) {
     return res.status(400).send("Email already exists");
   }
   const id = generateUserID();
-  users[id] = {id, email, password};
+  users[id] = { id, email, password };
   res.cookie("user_id", users[id].id);
   res.redirect("/urls");
 })
 
 // Login
 app.get("/login", (req, res) => {
-  res.render("urls_login");
+  const templateVars = { user: users[req.cookies["user_id"]] };
+  res.render("urls_login", templateVars);
 })
 app.post("/login", (req, res) => {
-  const { username } = req.body;
-  res.cookie("user_id", username);
+  const { email, password } = req.body;
+  const user = getUserByEmail( users, email)
+  if (!user) {
+    return res.status(403).send("Email invalid");
+  }
+  if (user.password !== password) {
+    return res.status(403).send("Incorrect Password")
+  }
+  res.cookie("user_id", user.id);
   res.redirect("/urls");
 });
 
 // Logout
 app.post("/logout", (req, res) => {
-  const { username } = req.body;
-  res.clearCookie("user_id", username);
-  res.redirect("/urls");
+  const { user } = req.body;
+  res.clearCookie("user_id", user);
+  res.redirect("/login");
 })
 
 // Add
