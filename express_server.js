@@ -2,7 +2,7 @@ const express = require("express");
 const app = express();
 const cookieParser = require('cookie-parser')
 const PORT = 8080; // default port 8080
-const { urlDatabase, users, generateRandomString, generateUserID, getUserByEmail } = require("./helper")
+const { urlDatabase, users, generateRandomString, getUserByEmail, urlsForUser } = require("./helper")
 
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -10,10 +10,14 @@ app.set("view engine", "ejs");
 
 // Homepage
 app.get("/", (req, res) => {
+  const templateVars = { user: users[req.cookies["user_id"]] };
   res.redirect("/urls");
 });
 
 app.get("/urls", (req, res) => {
+  if (!req.cookies.user_id) {
+    return res.redirect("/login");
+  }
   const templateVars = {
     urls: urlDatabase,
     user: users[req.cookies["user_id"]]
@@ -23,7 +27,11 @@ app.get("/urls", (req, res) => {
 
 // Register
 app.get("/register", (req, res) => {
-  const templateVars = { user : users[req.cookies["user_id"]] }
+  const user = users[req.cookies.user_id]
+  if (user) {
+    return res.redirect("/urls");
+  }
+  const templateVars = { user };
   res.render("urls_registration", templateVars);
 });
 
@@ -35,7 +43,7 @@ app.post("/register", (req, res) => {
   if (getUserByEmail(users, email)) {
     return res.status(400).send("Email already exists");
   }
-  const id = generateUserID();
+  const id = generateRandomString();
   users[id] = { id, email, password };
   res.cookie("user_id", users[id].id);
   res.redirect("/urls");
@@ -43,14 +51,21 @@ app.post("/register", (req, res) => {
 
 // Login
 app.get("/login", (req, res) => {
-  const templateVars = { user: users[req.cookies["user_id"]] };
+  const user = users[req.cookies.user_id];
+  if (user) {
+    return res.redirect("/url");
+  }
+  const templateVars = { user };
   res.render("urls_login", templateVars);
 })
 app.post("/login", (req, res) => {
   const { email, password } = req.body;
-  const user = getUserByEmail( users, email)
+  const user = getUserByEmail(users, email)
   if (!user) {
     return res.status(403).send("Email invalid");
+  }
+  if (!email && !password) {
+    return res.redirect("/login")
   }
   if (user.password !== password) {
     return res.status(403).send("Incorrect Password")
@@ -68,17 +83,26 @@ app.post("/logout", (req, res) => {
 
 // Add
 app.get("/urls/new", (req, res) => {
+  if (!req.cookies.user_id) {
+    return res.redirect("/login");
+  }
   const templateVars = { user: users[req.cookies["user_id"]] };
   res.render("urls_new", templateVars);
 });
 
 app.post("/urls", (req, res) => {
+  if (!req.body.longURL) {
+    return res.send("Error: Empty request")
+  }
   const id = generateRandomString();
   urlDatabase[id] = req.body.longURL;
   res.redirect(`/urls`);
 });
 
 app.get("/urls/:id", (req, res) => {
+  if (!req.cookies.user_id) {
+    return res.send("Please login to access short url");
+  }
   const templateVars = {
     id: req.params.id,
     longURL: urlDatabase[req.params.id],
