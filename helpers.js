@@ -1,7 +1,3 @@
-const urlDatabase = {};
-
-const users = {};
-
 const generateRandomString = () => {
   const char = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
   let idGen = "";
@@ -29,10 +25,7 @@ const urlsForUser = (id) => {
   return urls;
 };
 
-
 module.exports = {
-  urlDatabase,
-  users,
   generateRandomString,
   getUserByEmail,
   urlsForUser
