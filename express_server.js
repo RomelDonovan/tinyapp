@@ -4,7 +4,7 @@ const bcrypt = require("bcryptjs");
 const app = express();
 const PORT = 8080;
 const { generateRandomString, getUserByEmail } = require("./helpers");
-const { urlDatabase, users } = require("./data")
+const { urlDatabase, users } = require("./data");
 
 app.use(express.urlencoded({ extended: true }));
 app.set("view engine", "ejs");
@@ -21,7 +21,6 @@ app.get("/", (req, res) => {
 
 /* This page displays a list of URLs */
 app.get("/urls", (req, res) => {
-
   //Users must be logged in to access this page
   if (!req.session.user_id) return res.status(403).send("Only Logged in users can view shorten URLs");
   const templateVars = {
@@ -74,11 +73,12 @@ app.post("/login", (req, res) => {
 /* Logout */
 app.post("/logout", (req, res) => {
   const { user } = req.body;
-  res.clearCookie("session", user);
+  res.clearCookie("session", user); // It clears the session cookie
   res.redirect("/login");
 });
 
 /* Add */
+// Allows logged-in users to add a new URL
 app.get("/urls/new", (req, res) => {
   if (!req.session.user_id) return res.redirect("/login");
 
@@ -95,8 +95,9 @@ app.post("/urls", (req, res) => {
   res.redirect(`/urls/${id}`);
 });
 
+// Displays details of a specific URL identified by its ID
 app.get("/urls/:id", (req, res) => {
-  if (urlDatabase[req.params.id] === undefined) return res.status(404).send("URL does not exist in database")
+  if (urlDatabase[req.params.id] === undefined) return res.status(404).send("URL does not exist in database");
   if (!users[req.session.user_id]) return res.status(400).send("Please login to access short url");
   if (urlDatabase[req.params.id].user !== req.session["user_id"]) return res.status(403).send("You can not view URLs you dont own");
 
@@ -108,6 +109,7 @@ app.get("/urls/:id", (req, res) => {
   res.render("urls_show", templateVars);
 });
 
+// Handles URL redirection based on a short URL ID
 app.get("/u/:id", (req, res) => {
   if (!urlDatabase[req.params.id]) return res.status(404).send("URL does not exists in database");
 
@@ -115,7 +117,7 @@ app.get("/u/:id", (req, res) => {
   res.redirect(longURL);
 });
 
-// Edit
+/* Edit */
 app.post("/urls/:id", (req, res) => {
   const { id } = req.params;
   const { updatedURL } = req.body;
@@ -129,7 +131,7 @@ app.post("/urls/:id", (req, res) => {
   res.redirect("/urls");
 });
 
-// Delete
+/* Delete */
 app.post("/urls/:id/delete", (req, res) => {
   const { id } = req.params;
   const userId = req.session["user_id"];
@@ -142,7 +144,7 @@ app.post("/urls/:id/delete", (req, res) => {
   res.redirect("/urls");
 });
 
-// Listen
+/* Listen */
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
