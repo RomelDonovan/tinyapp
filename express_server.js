@@ -3,7 +3,8 @@ const sessionession = require('cookie-session');
 const bcrypt = require("bcryptjs");
 const app = express();
 const PORT = 8080;
-const { urlDatabase, users, generateRandomString, getUserByEmail } = require("./helpers");
+const { generateRandomString, getUserByEmail } = require("./helpers");
+const { urlDatabase, users } = require("./data")
 
 app.use(express.urlencoded({ extended: true }));
 app.set("view engine", "ejs");
@@ -12,12 +13,17 @@ app.use(sessionession({
   keys: ["key1"],
 }));
 
-// Homepage
-app.get("/", (req, res) => res.redirect("/urls"));
+/* Homepage ("/") */
+app.get("/", (req, res) => {
+  const user = users[req.session["user_id"]];
+  if (!user) return res.redirect("/login");
+});
 
+/* This page displays a list of URLs */
 app.get("/urls", (req, res) => {
-  if (!req.session.user_id) return res.redirect("/login");
 
+  //Users must be logged in to access this page
+  if (!req.session.user_id) return res.status(403).send("Only Logged in users can view shorten URLs");
   const templateVars = {
     urls: urlDatabase,
     user: users[req.session["user_id"]]
@@ -25,7 +31,7 @@ app.get("/urls", (req, res) => {
   res.render("urls_index", templateVars);
 });
 
-// Register
+/* Register */
 app.get("/register", (req, res) => {
   const user = users[req.session.user_id];
   if (user) return res.redirect("/urls");
@@ -45,7 +51,7 @@ app.post("/register", (req, res) => {
   res.redirect("/urls");
 });
 
-// Login
+/* Login */
 app.get("/login", (req, res) => {
   const user = users[req.session.user_id];
   if (user) return res.redirect("/url");
@@ -65,14 +71,14 @@ app.post("/login", (req, res) => {
   res.redirect("/urls");
 });
 
-// Logout
+/* Logout */
 app.post("/logout", (req, res) => {
   const { user } = req.body;
   res.clearCookie("session", user);
   res.redirect("/login");
 });
 
-// Add
+/* Add */
 app.get("/urls/new", (req, res) => {
   if (!req.session.user_id) return res.redirect("/login");
 
@@ -86,11 +92,13 @@ app.post("/urls", (req, res) => {
   const id = generateRandomString();
   const userId = req.session["user_id"]; // Get the user's ID from the cookie
   urlDatabase[id] = { longURL: req.body.longURL, user: userId }; // Store the user's ID along with the URL
-  res.redirect(`/urls`);
+  res.redirect(`/urls/${id}`);
 });
 
 app.get("/urls/:id", (req, res) => {
-  if (!req.session.user_id) return res.send("Please login to access short url");
+  if (urlDatabase[req.params.id] === undefined) return res.status(404).send("URL does not exist in database")
+  if (!users[req.session.user_id]) return res.status(400).send("Please login to access short url");
+  if (urlDatabase[req.params.id].user !== req.session["user_id"]) return res.status(403).send("You can not view URLs you dont own");
 
   const templateVars = {
     id: req.params.id,
@@ -101,7 +109,9 @@ app.get("/urls/:id", (req, res) => {
 });
 
 app.get("/u/:id", (req, res) => {
-  const longURL = urlDatabase[req.params.id];
+  if (!urlDatabase[req.params.id]) return res.status(404).send("URL does not exists in database");
+
+  const longURL = urlDatabase[req.params.id].longURL;
   res.redirect(longURL);
 });
 
@@ -110,15 +120,11 @@ app.post("/urls/:id", (req, res) => {
   const { id } = req.params;
   const { updatedURL } = req.body;
   const userId = req.session["user_id"];
-  if (!urlDatabase[id]) {
-    return res.status(404).send("URL not found");
-  }
-  if (!userId) {
-    return res.status(403).send("Please log in to edit the URL");
-  }
-  if (urlDatabase[id].user !== userId) {
-    return res.status(403).send("You do not own this URL");
-  }
+
+  if (!urlDatabase[id]) return res.status(404).send("URL not found");
+  if (!userId) return res.status(403).send("Please log in to edit the URL");
+  if (urlDatabase[id].user !== userId) return res.status(403).send("You do not own this URL");
+
   urlDatabase[id].longURL = updatedURL;
   res.redirect("/urls");
 });
@@ -127,15 +133,11 @@ app.post("/urls/:id", (req, res) => {
 app.post("/urls/:id/delete", (req, res) => {
   const { id } = req.params;
   const userId = req.session["user_id"];
-  if (!urlDatabase[id]) {
-    return res.status(404).send("URL not found");
-  }
-  if (!userId) {
-    return res.status(403).send("Please log in to delete the URL");
-  }
-  if (urlDatabase[id].user !== userId) {
-    return res.status(403).send("You do not own this URL");
-  }
+
+  if (!urlDatabase[id]) return res.status(404).send("URL not found");
+  if (!userId) return res.status(403).send("Please log in to delete the URL");
+  if (urlDatabase[id].user !== userId) return res.status(403).send("You do not own this URL");
+
   delete urlDatabase[id];
   res.redirect("/urls");
 });
